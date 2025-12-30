@@ -23,7 +23,12 @@ pub fn main() anyerror!void {
     defer ray.closeWindow();
 
     var grid = PuzzleGrid.init(test_puzzle);
-    var renderer = try PuzzleRenderer.init(screenWidth, screenHeight, 396);
+    const gridSize = 396;
+    var renderer = try PuzzleRenderer.init(
+        (screenWidth - gridSize) / 2,
+        (screenHeight - gridSize) / 2,
+        gridSize,
+    );
     defer renderer.deinit();
 
     var butt = Button{

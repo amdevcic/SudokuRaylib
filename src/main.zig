@@ -59,7 +59,15 @@ pub fn main() anyerror!void {
             grid.moveActive(Input.pollMove());
 
             if (Input.pollNumeric()) |num| {
-                if (grid.checkValid(num)) grid.setNumber(num);
+                const val = grid.checkValid(num);
+                if (val.result) {
+                    grid.setNumber(num);
+                } else {
+                    if (val.conflicts) |conf| {
+                        std.debug.print("{any}\n", .{conf[0..val.num]});
+                        renderer.setIncorrect(conf, val.num);
+                    }
+                }
             }
         } else {
             if (Input.pollClick()) |pos| {

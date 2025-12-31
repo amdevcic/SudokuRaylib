@@ -5,8 +5,12 @@ const PuzzleRenderer = @This();
 xPosition: i32,
 yPosition: i32,
 gridSize: i32,
+
 bgTexture: ray.Texture,
 cellSize: i32,
+
+incorrect_pos: [3]Grid.Position = .{Grid.Position.Zero} ** 3,
+incorrect_alpha: [3]f32 = .{0} ** 3,
 
 inline fn drawTile(self: *PuzzleRenderer, pos: Grid.Position, color: ray.Color) void {
     ray.drawRectangle(
@@ -43,9 +47,24 @@ pub fn deinit(self: *PuzzleRenderer) void {
     ray.unloadTexture(self.bgTexture);
 }
 
+pub fn setIncorrect(self: *PuzzleRenderer, pos: [3]Grid.Position, k: usize) void {
+    self.incorrect_alpha = .{0} ** 3;
+    for (0..k) |i| {
+        self.incorrect_pos[i] = pos[i];
+        self.incorrect_alpha[i] = 1.0;
+    }
+}
+
 pub fn draw(self: *PuzzleRenderer, grid: *Grid) !void {
     ray.drawTexture(self.bgTexture, self.xPosition, self.yPosition, .white);
     self.drawTile(grid.current_pos, .sky_blue);
+
+    for (0..3) |i| {
+        if (self.incorrect_alpha[i] > 0.0) {
+            self.drawTile(self.incorrect_pos[i], ray.Color.alpha(ray.Color.red, self.incorrect_alpha[i]));
+            self.incorrect_alpha[i] -= ray.getFrameTime() / 0.5;
+        }
+    }
 
     for (0..9) |i| {
         for (0..9) |j| {

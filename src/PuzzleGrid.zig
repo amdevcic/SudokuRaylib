@@ -5,6 +5,7 @@ const dim: u8 = 9;
 pub const Position = struct {
     row: u8,
     col: u8,
+    pub const Zero = Position{ .row = 0, .col = 0 };
     pub fn equals(self: *Position, row: u8, col: u8) bool {
         return (self.row == row and self.col == col);
     }
@@ -12,7 +13,8 @@ pub const Position = struct {
 
 pub const ValidityCheckResult = struct {
     result: bool,
-    conflicts: [3:0]Position = .{.{0} ** 3},
+    conflicts: ?[3]Position = null,
+    num: u2 = 0,
 };
 
 pub fn init(template: *const [81:0]u8) PuzzleGrid {
@@ -41,20 +43,50 @@ pub fn setNumber(self: *PuzzleGrid, num: u8) void {
     self.values[self.current_pos.row][self.current_pos.col] = num;
 }
 
-pub fn checkValid(self: *PuzzleGrid, num: u8) bool {
-    if (self.isCurrentFixed()) return false;
-    if (num == 0) return true;
+pub fn checkValid(self: *PuzzleGrid, num: u8) ValidityCheckResult {
+    if (self.isCurrentFixed()) return .{ .result = false };
+    if (num == 0) return .{ .result = true };
+
+    var out = ValidityCheckResult{ .result = true };
+    var k: u2 = 0;
+    var pos: [3]Position = .{Position.Zero} ** 3;
 
     const a = @divFloor(self.current_pos.row, 3);
     const b = @divFloor(self.current_pos.col, 3);
 
     for (0..9) |i| {
-        if (self.values[self.current_pos.row][i] == num) return false; // row
-        if (self.values[i][self.current_pos.col] == num) return false; // column
-        if (self.values[a * 3 + @divFloor(i, 3)][b * 3 + i % 3] == num) return false; // square
+        if (self.values[self.current_pos.row][i] == num) {
+            out.result = false;
+            pos[k] = .{ .row = self.current_pos.row, .col = @intCast(i) };
+            k += 1;
+        } // row
+
+        if (self.values[i][self.current_pos.col] == num) {
+            out.result = false;
+            pos[k] = .{ .row = @intCast(i), .col = self.current_pos.col };
+            for (0..k) |j| {
+                if (pos[j].equals(pos[k].row, pos[k].col)) {
+                    break;
+                }
+            } else k += 1;
+        } // column
+
+        if (self.values[a * 3 + @divFloor(i, 3)][b * 3 + i % 3] == num) {
+            out.result = false;
+            pos[k] = .{ .row = @intCast(a * 3 + @divFloor(i, 3)), .col = @intCast(b * 3 + i % 3) };
+            for (0..k) |j| {
+                if (pos[j].equals(pos[k].row, pos[k].col)) {
+                    break;
+                }
+            } else k += 1;
+        } // square
     }
 
-    return true;
+    if (k > 0) {
+        out.conflicts = pos;
+        out.num = k;
+    }
+    return out;
 }
 
 pub fn isCurrentFixed(self: *PuzzleGrid) bool {

@@ -12,9 +12,12 @@ pub const Vector2i = struct {
     y: i32,
 };
 
-const test_puzzle: *const [81:0]u8 = "050703060007000800000816000000030000005000100730040086906000204840572093000409000";
+//const test_puzzle: *const [81:0]u8 = "050703060007000800000816000000030000005000100730040086906000204840572093000409000";
+//const test_puzzle: *const [81:0]u8 = "679518243543729618821634957794352186358461729216897534485276391962183475137945862";
+const test_puzzle: *const [81:0]u8 = "009518243543729618821634957794352186358461729216897534485276391962183475137945862";
 
 var pause: bool = false;
+const UiScreen = enum { PAUSE, WIN };
 
 pub fn main() anyerror!void {
     const screenWidth = 800;
@@ -42,50 +45,86 @@ pub fn main() anyerror!void {
         .text = "Button",
     };
 
+    var pauseState: ?UiScreen = null;
+
     ray.setExitKey(.null); // do not use Esc for exit
     ray.setTargetFPS(60);
 
-    const start_time = ray.getTime();
+    var elapsed: f32 = 0.0;
 
     while (!ray.windowShouldClose()) {
+        if (pauseState == null) {
+            elapsed += ray.getFrameTime();
+        }
+        const minutes: i32 = @intFromFloat(@divFloor(elapsed, 60));
+        const seconds: i32 = @intFromFloat(@mod(elapsed, 60));
 
         // Pause
         if (ray.isKeyPressed(.escape)) {
-            pause = !pause;
+            pauseState = if (pauseState == null) .PAUSE else null;
         }
 
         // Check inputs
-        if (!pause) {
+        if (pauseState) |st| {
+            switch (st) {
+                .PAUSE => {
+                    if (Input.pollClick()) |pos| {
+                        if (butt.checkCollision(pos)) butt.onClick();
+                    }
+                },
+                .WIN => {},
+            }
+        } else {
             grid.moveActive(Input.pollMove());
 
             if (Input.pollNumeric()) |num| {
                 const val = grid.checkValid(num);
                 if (val.result) {
                     grid.setNumber(num);
+                    if (grid.complete == 81 and grid.checkSolved()) {
+                        pauseState = .WIN;
+                    }
                 } else {
                     if (val.conflicts) |conf| {
-                        std.debug.print("{any}\n", .{conf[0..val.num]});
                         renderer.setIncorrect(conf, val.num);
                     }
                 }
             }
-        } else {
-            if (Input.pollClick()) |pos| {
-                if (butt.checkCollision(pos)) butt.onClick();
+            if (Input.pollDelete()) {
+                grid.removeNumber();
             }
         }
-
-        const elapsed = ray.getTime() - start_time;
-        const minutes: i32 = @intFromFloat(@divFloor(elapsed, 60));
-        const seconds: i32 = @intFromFloat(@mod(elapsed, 60));
 
         // Draw scene
         ray.beginDrawing();
         try renderer.draw(&grid);
         ray.drawText(ray.textFormat("Time: %02d:%02d", .{ minutes, seconds }), 10, 10, 20, .light_gray);
 
-        if (pause) {
+        if (pauseState) |st| {
             ray.drawRectangle(0, 0, screenWidth, screenHeight, ray.Color.black.alpha(0.6));
+            switch (st) {
+                .PAUSE => {
+                    ray.drawText(
+                        "Paused",
+                        @divFloor((screenWidth - ray.measureText("paused", 32)), 2),
+                        100,
+                        32,
+                        .white,
+                    );
+                    butt.draw();
+                },
+                .WIN => {
+                    ray.drawText(
+                        "You win!",
+                        @divFloor((screenWidth - ray.measureText("You win!", 32)), 2),
+                        100,
+                        32,
+                        .white,
+                    );
+                },
+            }
+        }
+        if (pause) {
             ray.drawText(
                 "Paused",
                 @divFloor((screenWidth - ray.measureText("paused", 32)), 2),

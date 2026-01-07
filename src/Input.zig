@@ -4,7 +4,7 @@ const root = @import("root");
 
 pub fn pollNumeric() ?u8 {
     const ch: i32 = ray.getCharPressed();
-    if (ch >= '0' and ch <= '9') {
+    if (ch > '0' and ch <= '9') {
         return @intCast(ch - '0');
     }
     return null;
@@ -22,4 +22,8 @@ pub fn pollClick() ?root.Vector2i {
         const ray_pos = ray.getMousePosition();
         return root.Vector2i{ .x = @intFromFloat(ray_pos.x), .y = @intFromFloat(ray_pos.y) };
     } else return null;
+}
+
+pub fn pollDelete() bool {
+    return (ray.isKeyPressed(key.zero) or ray.isKeyPressed(key.backspace));
 }

@@ -3,12 +3,14 @@ const PuzzleRenderer = @import("PuzzleRenderer.zig");
 const Button = @import("Button.zig");
 const Input = @import("Input.zig");
 const ray = @import("raylib");
+const SceneType = @import("Scene.zig").SceneType;
 const Game = @This();
 
 grid: PuzzleGrid,
 renderer: PuzzleRenderer,
 button: Button,
 pauseState: ?UiScreen = null,
+sceneQueue: ?SceneType = null,
 elapsed: f32 = 0.0,
 
 //const test_puzzle: *const [81:0]u8 = "050703060007000800000816000000030000005000100730040086906000204840572093000409000";
@@ -115,4 +117,5 @@ pub fn draw(self: *Game, screenWidth: i32, screenHeight: i32) !void {
             },
         }
     }
+    ray.clearBackground(.white);
 }

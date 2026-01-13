@@ -1,7 +1,12 @@
 const Game = @import("Game.zig");
 const MainMenu = @import("MainMenu.zig");
 
-pub const Scene = union(enum) {
+pub const SceneType = enum {
+    game,
+    menu,
+};
+
+pub const Scene = union(SceneType) {
     game: Game,
     menu: MainMenu,
 
@@ -31,5 +36,12 @@ pub const Scene = union(enum) {
             .game => |*g| try g.draw(screenWidth, screenHeight),
             .menu => |*m| try m.draw(screenWidth, screenHeight),
         }
+    }
+
+    pub fn pollSwitchScene(self: *Scene) ?SceneType {
+        return switch (self.*) {
+            .game => |*g| g.sceneQueue,
+            .menu => |*m| m.sceneQueue,
+        };
     }
 };

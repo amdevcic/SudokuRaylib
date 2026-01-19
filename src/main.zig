@@ -33,23 +33,23 @@ pub fn main() anyerror!void {
     var gameScene = Scene{ .game = game };
     defer gameScene.deinit();
 
-    const menu = try alloc.create(MainMenu);
-    menu.* = try MainMenu.init(screenWidth, screenHeight);
+    const menu = try MainMenu.init(&alloc, screenWidth, screenHeight);
     var menuScene = Scene{ .menu = menu };
     defer menuScene.deinit();
 
     // var activeScene: Scene = menuScene;
-    var activeScene: Scene = gameScene;
+    var activeScene: Scene = menuScene;
 
     ray.setExitKey(.null); // do not use Esc for exit
     ray.setTargetFPS(60);
 
-    while (!ray.windowShouldClose() and !game.windowShouldClose) {
+    while (!ray.windowShouldClose() and !game.windowShouldClose and !menu.windowShouldClose) {
         if (activeScene.pollSwitchScene()) |sc| {
             activeScene = switch (sc) {
                 .game => gameScene,
                 .menu => menuScene,
             };
+            activeScene.reset();
         }
         activeScene.update();
 

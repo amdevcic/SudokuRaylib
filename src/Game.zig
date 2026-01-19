@@ -37,18 +37,16 @@ pub fn init(alloc: *const std.mem.Allocator, screenWidth: i32, screenHeight: i32
             @divFloor(screenHeight - gridSize, 2),
             gridSize,
         ),
-        .pauseMenu = try SimpleMenu.init(alloc, 2),
+        .pauseMenu = try SimpleMenu.init(alloc, 3),
         .winMenu = try SimpleMenu.init(alloc, 2),
         .alloc = alloc,
     };
+
     const menuButton: SimpleMenu.ButtonCommand = .{
         .func = &returnToMenu,
         .text = "Return to menu",
         .context = out,
     };
-
-    out.pauseMenu.addButton(menuButton);
-    out.winMenu.addButton(menuButton);
 
     const exitButton: SimpleMenu.ButtonCommand = .{
         .func = &exitGame,
@@ -56,7 +54,17 @@ pub fn init(alloc: *const std.mem.Allocator, screenWidth: i32, screenHeight: i32
         .context = out,
     };
 
+    const resumeButton: SimpleMenu.ButtonCommand = .{
+        .func = &returnToGame,
+        .text = "Resume",
+        .context = out,
+    };
+
+    out.pauseMenu.addButton(resumeButton);
+    out.pauseMenu.addButton(menuButton);
     out.pauseMenu.addButton(exitButton);
+
+    out.winMenu.addButton(menuButton);
     out.winMenu.addButton(exitButton);
 
     out.pauseMenu.position = .{ .x = @divFloor(screenWidth - out.pauseMenu.width, 2), .y = 150 };
@@ -77,7 +85,7 @@ pub fn update(self: *Game) void {
     // const seconds: i32 = @intFromFloat(@mod(self.elapsed, 60));
 
     // Pause
-    if (ray.isKeyPressed(.escape)) {
+    if (ray.isKeyPressed(.escape) and self.pauseState != .WIN) {
         self.pauseState = if (self.pauseState == null) .PAUSE else null;
     }
 
@@ -90,7 +98,12 @@ pub fn update(self: *Game) void {
                     self.pauseMenu.checkInput(.{ .x = @intFromFloat(pos.x), .y = @intFromFloat(pos.y) });
                 }
             },
-            .WIN => {},
+            .WIN => {
+                if (ray.isMouseButtonPressed(.left)) {
+                    const pos = ray.getMousePosition();
+                    self.winMenu.checkInput(.{ .x = @intFromFloat(pos.x), .y = @intFromFloat(pos.y) });
+                }
+            },
         }
     } else {
         self.grid.moveActive(Input.pollMove());
@@ -112,6 +125,13 @@ pub fn update(self: *Game) void {
             self.grid.removeNumber();
         }
     }
+}
+
+pub fn reset(self: *Game) void {
+    self.sceneQueue = null;
+    self.windowShouldClose = false;
+    self.pauseState = null;
+    self.elapsed = 0.0;
 }
 
 pub fn draw(self: *Game, screenWidth: i32, screenHeight: i32) !void {
@@ -144,6 +164,11 @@ pub fn draw(self: *Game, screenWidth: i32, screenHeight: i32) !void {
         }
     }
     ray.clearBackground(.white);
+}
+
+fn returnToGame(game_ptr: *anyopaque) void {
+    const game: *Game = @ptrCast(@alignCast(game_ptr));
+    game.pauseState = null;
 }
 
 fn returnToMenu(game_ptr: *anyopaque) void {

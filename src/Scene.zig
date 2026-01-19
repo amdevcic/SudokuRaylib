@@ -17,6 +17,13 @@ pub const Scene = union(SceneType) {
         }
     }
 
+    pub fn reset(self: *Scene) void {
+        switch (self.*) {
+            .game => |g| g.reset(),
+            .menu => |m| m.reset(),
+        }
+    }
+
     pub fn deinit(self: *Scene) void {
         switch (self.*) {
             .game => |g| g.deinit(),

@@ -1,13 +1,12 @@
 const ray = @import("raylib");
-const Input = @import("Input.zig");
-const SceneType = @import("Scene.zig").SceneType;
 const SimpleMenu = @import("SimpleMenu.zig");
 const std = @import("std");
 const MainMenu = @This();
 
-sceneQueue: ?SceneType = null,
+const Scene = @import("Scene.zig").Scene;
+
+scene: Scene,
 simpleMenu: SimpleMenu,
-windowShouldClose: bool = false,
 
 pub fn init(alloc: *const std.mem.Allocator, screenWidth: i32, screenHeight: i32) !*MainMenu {
     _ = screenHeight;
@@ -15,6 +14,12 @@ pub fn init(alloc: *const std.mem.Allocator, screenWidth: i32, screenHeight: i32
     const out = try alloc.create(MainMenu);
     out.* = MainMenu{
         .simpleMenu = try SimpleMenu.init(alloc, 2),
+        .scene = .{
+            .context = out,
+            .draw_fn = draw,
+            .update_fn = update,
+            .reset_fn = reset,
+        },
     };
 
     const exitButton: SimpleMenu.ButtonCommand = .{
@@ -35,23 +40,25 @@ pub fn init(alloc: *const std.mem.Allocator, screenWidth: i32, screenHeight: i32
     return out;
 }
 
-pub fn reset(self: *MainMenu) void {
-    self.sceneQueue = null;
-    self.windowShouldClose = false;
+pub fn reset(menu_ptr: *anyopaque) void {
+    _ = menu_ptr;
 }
 
 pub fn deinit(self: *MainMenu) void {
-    _ = self;
+    self.simpleMenu.deinit();
+    // _ = self;
 }
 
-pub fn update(self: *MainMenu) void {
+pub fn update(menu_ptr: *anyopaque) void {
+    const self: *MainMenu = @ptrCast(@alignCast(menu_ptr));
     if (ray.isMouseButtonPressed(.left)) {
         const pos = ray.getMousePosition();
         self.simpleMenu.checkInput(.{ .x = @intFromFloat(pos.x), .y = @intFromFloat(pos.y) });
     }
 }
 
-pub fn draw(self: *MainMenu, screenWidth: i32, screenHeight: i32) !void {
+pub fn draw(menu_ptr: *anyopaque, screenWidth: i32, screenHeight: i32) void {
+    const self: *MainMenu = @ptrCast(@alignCast(menu_ptr));
     _ = screenHeight;
     ray.clearBackground(.dark_blue);
     ray.drawText(
@@ -65,11 +72,11 @@ pub fn draw(self: *MainMenu, screenWidth: i32, screenHeight: i32) !void {
 }
 
 fn startGame(menu_ptr: *anyopaque) void {
-    const menu: *MainMenu = @ptrCast(@alignCast(menu_ptr));
-    menu.sceneQueue = .game;
+    const self: *MainMenu = @ptrCast(@alignCast(menu_ptr));
+    self.scene.sceneQueue = .game;
 }
 
 fn exitGame(menu_ptr: *anyopaque) void {
-    const menu: *MainMenu = @ptrCast(@alignCast(menu_ptr));
-    menu.windowShouldClose = true;
+    const self: *MainMenu = @ptrCast(@alignCast(menu_ptr));
+    self.scene.windowShouldClose = true;
 }

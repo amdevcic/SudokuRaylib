@@ -55,7 +55,7 @@ pub fn setIncorrect(self: *PuzzleRenderer, pos: [3]Grid.Position, k: usize) void
     }
 }
 
-pub fn draw(self: *PuzzleRenderer, grid: *Grid) !void {
+pub fn draw(self: *PuzzleRenderer, grid: *Grid) void {
     ray.drawTexture(self.bgTexture, self.xPosition, self.yPosition, .white);
     self.drawTile(grid.current_pos, .sky_blue);
 
@@ -74,7 +74,7 @@ pub fn draw(self: *PuzzleRenderer, grid: *Grid) !void {
                 }
             }
             ray.drawTextCodepoint(
-                try ray.getFontDefault(),
+                ray.getFontDefault() catch break,
                 if (grid.values[i][j] > 0) grid.values[i][j] + '0' else ' ',
                 .{
                     .x = @floatFromInt(self.xPosition + @as(i32, @intCast(j)) * self.cellSize + 12),

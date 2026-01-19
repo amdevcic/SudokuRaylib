@@ -60,7 +60,6 @@ pub fn checkInput(self: *SimpleMenu, mouse_position: root.Vector2i) void {
     if (mouse_position.y < self.position.y or mouse_position.y > self.position.y + (self.button_height + self.spacing) * len)
         return;
     const ix = @divTrunc(mouse_position.y - self.position.y, self.button_height + self.spacing);
-    // std.debug.print("index: {}\n", .{ix});
     const button_y = self.position.y + ix * (self.button_height + self.spacing);
     if (mouse_position.y <= button_y + self.button_height) {
         self.buttons.items[@intCast(ix)].onClick();
@@ -68,5 +67,5 @@ pub fn checkInput(self: *SimpleMenu, mouse_position: root.Vector2i) void {
 }
 
 pub fn deinit(self: *SimpleMenu) void {
-    self.alloc.destroy(self.buttons);
+    self.alloc.destroy(&self.buttons);
 }

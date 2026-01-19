@@ -28,23 +28,21 @@ pub fn main() anyerror!void {
     ray.initWindow(screenWidth, screenHeight, "Sudoku");
     defer ray.closeWindow();
 
-    // const game = try alloc.create(Game);
     const game = try Game.init(&alloc, screenWidth, screenHeight);
-    var gameScene = Scene{ .game = game };
-    defer gameScene.deinit();
+    const gameScene: *Scene = &game.scene;
+    defer game.deinit();
 
     const menu = try MainMenu.init(&alloc, screenWidth, screenHeight);
-    var menuScene = Scene{ .menu = menu };
-    defer menuScene.deinit();
+    const menuScene: *Scene = &menu.scene;
+    defer menu.deinit();
 
-    // var activeScene: Scene = menuScene;
-    var activeScene: Scene = menuScene;
+    var activeScene: *Scene = menuScene;
 
     ray.setExitKey(.null); // do not use Esc for exit
     ray.setTargetFPS(60);
 
-    while (!ray.windowShouldClose() and !game.windowShouldClose and !menu.windowShouldClose) {
-        if (activeScene.pollSwitchScene()) |sc| {
+    while (!ray.windowShouldClose() and !activeScene.windowShouldClose) {
+        if (activeScene.sceneQueue) |sc| {
             activeScene = switch (sc) {
                 .game => gameScene,
                 .menu => menuScene,
@@ -54,8 +52,7 @@ pub fn main() anyerror!void {
         activeScene.update();
 
         ray.beginDrawing();
-        try activeScene.draw(screenWidth, screenHeight);
-
+        activeScene.draw(screenWidth, screenHeight);
         ray.endDrawing();
     }
 }

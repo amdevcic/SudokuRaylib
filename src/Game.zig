@@ -2,21 +2,21 @@ const PuzzleGrid = @import("PuzzleGrid.zig");
 const PuzzleRenderer = @import("PuzzleRenderer.zig");
 const Input = @import("Input.zig");
 const ray = @import("raylib");
-const SceneType = @import("Scene.zig").SceneType;
 const SimpleMenu = @import("SimpleMenu.zig");
 const std = @import("std");
 const Game = @This();
 
+const Scene = @import("Scene.zig").Scene;
+
 grid: PuzzleGrid,
 renderer: PuzzleRenderer,
 pauseState: ?UiScreen = null,
-sceneQueue: ?SceneType = null,
 elapsed: f32 = 0.0,
-windowShouldClose: bool = false,
 
 pauseMenu: SimpleMenu,
 winMenu: SimpleMenu,
 alloc: *const std.mem.Allocator,
+scene: Scene,
 
 //const test_puzzle: *const [81:0]u8 = "050703060007000800000816000000030000005000100730040086906000204840572093000409000";
 //const test_puzzle: *const [81:0]u8 = "679518243543729618821634957794352186358461729216897534485276391962183475137945862";
@@ -40,6 +40,12 @@ pub fn init(alloc: *const std.mem.Allocator, screenWidth: i32, screenHeight: i32
         .pauseMenu = try SimpleMenu.init(alloc, 3),
         .winMenu = try SimpleMenu.init(alloc, 2),
         .alloc = alloc,
+        .scene = .{
+            .context = out,
+            .draw_fn = draw,
+            .update_fn = update,
+            .reset_fn = reset,
+        },
     };
 
     const menuButton: SimpleMenu.ButtonCommand = .{
@@ -77,7 +83,8 @@ pub fn deinit(self: *Game) void {
     self.renderer.deinit();
 }
 
-pub fn update(self: *Game) void {
+pub fn update(game_ptr: *anyopaque) void {
+    const self: *Game = @ptrCast(@alignCast(game_ptr));
     if (self.pauseState == null) {
         self.elapsed += ray.getFrameTime();
     }
@@ -127,15 +134,16 @@ pub fn update(self: *Game) void {
     }
 }
 
-pub fn reset(self: *Game) void {
-    self.sceneQueue = null;
-    self.windowShouldClose = false;
+pub fn reset(game_ptr: *anyopaque) void {
+    const self: *Game = @ptrCast(@alignCast(game_ptr));
+    self.grid = PuzzleGrid.init(test_puzzle);
     self.pauseState = null;
     self.elapsed = 0.0;
 }
 
-pub fn draw(self: *Game, screenWidth: i32, screenHeight: i32) !void {
-    try self.renderer.draw(&self.grid);
+pub fn draw(game_ptr: *anyopaque, screenWidth: i32, screenHeight: i32) void {
+    const self: *Game = @ptrCast(@alignCast(game_ptr));
+    self.renderer.draw(&self.grid);
     // ray.drawText(ray.textFormat("Time: %02d:%02d", .{ minutes, seconds }), 10, 10, 20, .light_gray);
 
     if (self.pauseState) |st| {
@@ -167,17 +175,16 @@ pub fn draw(self: *Game, screenWidth: i32, screenHeight: i32) !void {
 }
 
 fn returnToGame(game_ptr: *anyopaque) void {
-    const game: *Game = @ptrCast(@alignCast(game_ptr));
-    game.pauseState = null;
+    const self: *Game = @ptrCast(@alignCast(game_ptr));
+    self.pauseState = null;
 }
 
 fn returnToMenu(game_ptr: *anyopaque) void {
-    const game: *Game = @ptrCast(@alignCast(game_ptr));
-    game.sceneQueue = .menu;
+    const self: *Game = @ptrCast(@alignCast(game_ptr));
+    self.scene.sceneQueue = .menu;
 }
 
 fn exitGame(game_ptr: *anyopaque) void {
-    // ray.closeWindow();
-    const game: *Game = @ptrCast(@alignCast(game_ptr));
-    game.windowShouldClose = true;
+    const self: *Game = @ptrCast(@alignCast(game_ptr));
+    self.scene.windowShouldClose = true;
 }

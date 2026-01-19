@@ -1,17 +1,22 @@
 const PuzzleGrid = @import("PuzzleGrid.zig");
 const PuzzleRenderer = @import("PuzzleRenderer.zig");
-const Button = @import("Button.zig");
 const Input = @import("Input.zig");
 const ray = @import("raylib");
 const SceneType = @import("Scene.zig").SceneType;
+const SimpleMenu = @import("SimpleMenu.zig");
+const std = @import("std");
 const Game = @This();
 
 grid: PuzzleGrid,
 renderer: PuzzleRenderer,
-button: Button,
 pauseState: ?UiScreen = null,
 sceneQueue: ?SceneType = null,
 elapsed: f32 = 0.0,
+windowShouldClose: bool = false,
+
+pauseMenu: SimpleMenu,
+winMenu: SimpleMenu,
+alloc: *const std.mem.Allocator,
 
 //const test_puzzle: *const [81:0]u8 = "050703060007000800000816000000030000005000100730040086906000204840572093000409000";
 //const test_puzzle: *const [81:0]u8 = "679518243543729618821634957794352186358461729216897534485276391962183475137945862";
@@ -19,25 +24,44 @@ const test_puzzle: *const [81:0]u8 = "009518243543729618821634957794352186358461
 
 const UiScreen = enum { PAUSE, WIN };
 
-pub fn init(screenWidth: i32, screenHeight: i32) !Game {
+pub fn init(alloc: *const std.mem.Allocator, screenWidth: i32, screenHeight: i32) !*Game {
     const gridSize = 396;
 
-    const out = Game{
+    const out = try alloc.create(Game);
+    errdefer alloc.destroy(out);
+
+    out.* = Game{
         .grid = PuzzleGrid.init(test_puzzle),
         .renderer = try PuzzleRenderer.init(
             @divFloor(screenWidth - gridSize, 2),
             @divFloor(screenHeight - gridSize, 2),
             gridSize,
         ),
-        .button = Button{
-            .onClick = &struct {
-                fn func() void {}
-            }.func,
-            .position = .{ .x = @divFloor(screenWidth - 100, 2), .y = 200 },
-            .size = .{ .x = 100, .y = 40 },
-            .text = "Button",
-        },
+        .pauseMenu = try SimpleMenu.init(alloc, 2),
+        .winMenu = try SimpleMenu.init(alloc, 2),
+        .alloc = alloc,
     };
+    const menuButton: SimpleMenu.ButtonCommand = .{
+        .func = &returnToMenu,
+        .text = "Return to menu",
+        .context = out,
+    };
+
+    out.pauseMenu.addButton(menuButton);
+    out.winMenu.addButton(menuButton);
+
+    const exitButton: SimpleMenu.ButtonCommand = .{
+        .func = &exitGame,
+        .text = "Exit game",
+        .context = out,
+    };
+
+    out.pauseMenu.addButton(exitButton);
+    out.winMenu.addButton(exitButton);
+
+    out.pauseMenu.position = .{ .x = @divFloor(screenWidth - out.pauseMenu.width, 2), .y = 150 };
+    out.winMenu.position = .{ .x = @divFloor(screenWidth - out.winMenu.width, 2), .y = 150 };
+
     return out;
 }
 
@@ -61,8 +85,9 @@ pub fn update(self: *Game) void {
     if (self.pauseState) |st| {
         switch (st) {
             .PAUSE => {
-                if (Input.pollClick()) |pos| {
-                    if (self.button.checkCollision(pos)) self.button.onClick();
+                if (ray.isMouseButtonPressed(.left)) {
+                    const pos = ray.getMousePosition();
+                    self.pauseMenu.checkInput(.{ .x = @intFromFloat(pos.x), .y = @intFromFloat(pos.y) });
                 }
             },
             .WIN => {},
@@ -104,7 +129,7 @@ pub fn draw(self: *Game, screenWidth: i32, screenHeight: i32) !void {
                     32,
                     .white,
                 );
-                self.button.draw();
+                self.pauseMenu.draw();
             },
             .WIN => {
                 ray.drawText(
@@ -114,8 +139,20 @@ pub fn draw(self: *Game, screenWidth: i32, screenHeight: i32) !void {
                     32,
                     .white,
                 );
+                self.winMenu.draw();
             },
         }
     }
     ray.clearBackground(.white);
+}
+
+fn returnToMenu(game_ptr: *anyopaque) void {
+    const game: *Game = @ptrCast(@alignCast(game_ptr));
+    game.sceneQueue = .menu;
+}
+
+fn exitGame(game_ptr: *anyopaque) void {
+    // ray.closeWindow();
+    const game: *Game = @ptrCast(@alignCast(game_ptr));
+    game.windowShouldClose = true;
 }

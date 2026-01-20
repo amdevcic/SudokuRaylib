@@ -116,3 +116,13 @@ pub fn draw(self: *PuzzleRenderer, grid: *Grid) void {
         .dark_gray,
     );
 }
+
+pub fn checkInput(self: PuzzleRenderer, x: i32, y: i32) ?Grid.Position {
+    if (x < self.xPosition or x > self.xPosition + self.gridSize) return null;
+    if (y < self.yPosition or y > self.yPosition + self.gridSize) return null;
+
+    const x_cell: u8 = @intCast(@divTrunc(x - self.xPosition, self.cellSize));
+    const y_cell: u8 = @intCast(@divTrunc(y - self.yPosition, self.cellSize));
+
+    return .{ .col = x_cell, .row = y_cell };
+}

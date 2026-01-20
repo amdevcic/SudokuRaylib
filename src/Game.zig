@@ -115,6 +115,14 @@ pub fn update(game_ptr: *anyopaque) void {
     } else {
         self.grid.moveActive(Input.pollMove());
 
+        if (ray.isMouseButtonPressed(.left)) {
+            const pos = ray.getMousePosition();
+            const cell = self.renderer.checkInput(@intFromFloat(pos.x), @intFromFloat(pos.y));
+            if (cell) |click_pos| {
+                self.grid.current_pos = click_pos;
+            }
+        }
+
         if (Input.pollNumeric()) |num| {
             const val = self.grid.checkValid(num);
             if (val.result) {

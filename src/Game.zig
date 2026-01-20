@@ -5,11 +5,13 @@ const ray = @import("raylib");
 const SimpleMenu = @import("SimpleMenu.zig");
 const std = @import("std");
 const Game = @This();
+const NumberButtons = @import("NumberButtons.zig");
 
 const Scene = @import("Scene.zig").Scene;
 
 grid: PuzzleGrid,
 renderer: PuzzleRenderer,
+num_buttons: NumberButtons,
 pauseState: ?UiScreen = null,
 elapsed: f32 = 0.0,
 
@@ -18,9 +20,9 @@ winMenu: SimpleMenu,
 alloc: *const std.mem.Allocator,
 scene: Scene,
 
-//const test_puzzle: *const [81:0]u8 = "050703060007000800000816000000030000005000100730040086906000204840572093000409000";
+const test_puzzle: *const [81:0]u8 = "050703060007000800000816000000030000005000100730040086906000204840572093000409000";
 //const test_puzzle: *const [81:0]u8 = "679518243543729618821634957794352186358461729216897534485276391962183475137945862";
-const test_puzzle: *const [81:0]u8 = "009518243543729618821634957794352186358461729216897534485276391962183475137945862";
+// const test_puzzle: *const [81:0]u8 = "009518243543729618821634957794352186358461729216897534485276391962183475137945862";
 
 const UiScreen = enum { PAUSE, WIN };
 
@@ -34,9 +36,14 @@ pub fn init(alloc: *const std.mem.Allocator, screenWidth: i32, screenHeight: i32
         .grid = PuzzleGrid.init(test_puzzle),
         .renderer = try PuzzleRenderer.init(
             @divFloor(screenWidth - gridSize, 2),
-            @divFloor(screenHeight - gridSize, 2),
+            @divFloor(screenHeight - gridSize, 2) - 32,
             gridSize,
         ),
+        .num_buttons = .{
+            .btn_size = 40,
+            .xPosition = @divTrunc(screenWidth - 9 * 40, 2),
+            .yPosition = screenHeight - 64,
+        },
         .pauseMenu = try SimpleMenu.init(alloc, 3),
         .winMenu = try SimpleMenu.init(alloc, 2),
         .alloc = alloc,
@@ -120,6 +127,21 @@ pub fn update(game_ptr: *anyopaque) void {
             const cell = self.renderer.checkInput(@intFromFloat(pos.x), @intFromFloat(pos.y));
             if (cell) |click_pos| {
                 self.grid.current_pos = click_pos;
+            } else {
+                const num_btn = self.num_buttons.checkInput(@intFromFloat(pos.x), @intFromFloat(pos.y));
+                if (num_btn) |num| {
+                    const val = self.grid.checkValid(num);
+                    if (val.result) {
+                        self.grid.setNumber(num);
+                        if (self.grid.complete == 81 and self.grid.checkSolved()) {
+                            self.pauseState = .WIN;
+                        }
+                    } else {
+                        if (val.conflicts) |conf| {
+                            self.renderer.setIncorrect(conf, val.num);
+                        }
+                    }
+                }
             }
         }
 
@@ -152,6 +174,7 @@ pub fn reset(game_ptr: *anyopaque) void {
 pub fn draw(game_ptr: *anyopaque, screenWidth: i32, screenHeight: i32) void {
     const self: *Game = @ptrCast(@alignCast(game_ptr));
     self.renderer.draw(&self.grid);
+    self.num_buttons.draw();
     // ray.drawText(ray.textFormat("Time: %02d:%02d", .{ minutes, seconds }), 10, 10, 20, .light_gray);
 
     if (self.pauseState) |st| {

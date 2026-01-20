@@ -17,7 +17,7 @@ pub const Vector2i = struct {
 };
 
 const screenWidth = 800;
-const screenHeight = 450;
+const screenHeight = 500;
 
 pub fn main() anyerror!void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);

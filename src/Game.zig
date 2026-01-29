@@ -20,9 +20,9 @@ winMenu: SimpleMenu,
 alloc: *const std.mem.Allocator,
 scene: Scene,
 
-const test_puzzle: *const [81:0]u8 = "050703060007000800000816000000030000005000100730040086906000204840572093000409000";
+// const test_puzzle: *const [81:0]u8 = "050703060007000800000816000000030000005000100730040086906000204840572093000409000";
 //const test_puzzle: *const [81:0]u8 = "679518243543729618821634957794352186358461729216897534485276391962183475137945862";
-// const test_puzzle: *const [81:0]u8 = "009518243543729618821634957794352186358461729216897534485276391962183475137945862";
+const test_puzzle: *const [81:0]u8 = "009518243543729618821634957794352186358461729216897534485276391962183475137945862";
 
 const UiScreen = enum { PAUSE, WIN };
 
@@ -80,8 +80,8 @@ pub fn init(alloc: *const std.mem.Allocator, screenWidth: i32, screenHeight: i32
     out.winMenu.addButton(menuButton);
     out.winMenu.addButton(exitButton);
 
-    out.pauseMenu.position = .{ .x = @divFloor(screenWidth - out.pauseMenu.width, 2), .y = 150 };
-    out.winMenu.position = .{ .x = @divFloor(screenWidth - out.winMenu.width, 2), .y = 150 };
+    out.pauseMenu.position = .{ .x = @divFloor(screenWidth - out.pauseMenu.width, 2), .y = 180 };
+    out.winMenu.position = .{ .x = @divFloor(screenWidth - out.winMenu.width, 2), .y = 220 };
 
     return out;
 }
@@ -95,8 +95,6 @@ pub fn update(game_ptr: *anyopaque) void {
     if (self.pauseState == null) {
         self.elapsed += ray.getFrameTime();
     }
-    // const minutes: i32 = @intFromFloat(@divFloor(self.elapsed, 60));
-    // const seconds: i32 = @intFromFloat(@mod(self.elapsed, 60));
 
     // Pause
     if (ray.isKeyPressed(.escape) and self.pauseState != .WIN) {
@@ -175,7 +173,11 @@ pub fn draw(game_ptr: *anyopaque, screenWidth: i32, screenHeight: i32) void {
     const self: *Game = @ptrCast(@alignCast(game_ptr));
     self.renderer.draw(&self.grid);
     self.num_buttons.draw();
-    // ray.drawText(ray.textFormat("Time: %02d:%02d", .{ minutes, seconds }), 10, 10, 20, .light_gray);
+
+    const minutes: i32 = @intFromFloat(@divFloor(self.elapsed, 60));
+    const seconds: i32 = @intFromFloat(@mod(self.elapsed, 60));
+
+    ray.drawText(ray.textFormat("Time: %02d:%02d", .{ minutes, seconds }), 10, 10, 20, .light_gray);
 
     if (self.pauseState) |st| {
         ray.drawRectangle(0, 0, screenWidth, screenHeight, ray.Color.black.alpha(0.6));
@@ -183,9 +185,9 @@ pub fn draw(game_ptr: *anyopaque, screenWidth: i32, screenHeight: i32) void {
             .PAUSE => {
                 ray.drawText(
                     "Paused",
-                    @divFloor((screenWidth - ray.measureText("paused", 32)), 2),
-                    100,
-                    32,
+                    @divFloor((screenWidth - ray.measureText("paused", 40)), 2),
+                    120,
+                    40,
                     .white,
                 );
                 self.pauseMenu.draw();
@@ -193,9 +195,17 @@ pub fn draw(game_ptr: *anyopaque, screenWidth: i32, screenHeight: i32) void {
             .WIN => {
                 ray.drawText(
                     "You win!",
-                    @divFloor((screenWidth - ray.measureText("You win!", 32)), 2),
-                    100,
-                    32,
+                    @divFloor((screenWidth - ray.measureText("You win!", 40)), 2),
+                    120,
+                    40,
+                    .white,
+                );
+                const txt = ray.textFormat("Time taken: %02i:%02i", .{ minutes, seconds });
+                ray.drawText(
+                    txt,
+                    @divFloor((screenWidth - ray.measureText(txt, 20)), 2),
+                    170,
+                    20,
                     .white,
                 );
                 self.winMenu.draw();

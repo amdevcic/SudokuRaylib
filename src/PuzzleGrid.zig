@@ -17,6 +17,11 @@ pub const ValidityCheckResult = struct {
     num: u2 = 0,
 };
 
+values: [dim][dim]u8 = .{.{0} ** 9} ** 9,
+fixed: [dim][dim]bool = .{.{false} ** 9} ** 9,
+current_pos: Position = .{ .row = 0, .col = 0 },
+complete: [9]u8 = .{0} ** 9,
+
 pub fn init(template: *const [81:0]u8) PuzzleGrid {
     var out = PuzzleGrid{};
 
@@ -25,16 +30,11 @@ pub fn init(template: *const [81:0]u8) PuzzleGrid {
         if (val > 0) {
             out.values[@divFloor(i, dim)][i % dim] = ch - '0';
             out.fixed[@divFloor(i, dim)][i % dim] = true;
-            out.complete += 1;
+            out.complete[val - 1] += 1;
         }
     }
     return out;
 }
-
-values: [dim][dim]u8 = .{.{0} ** 9} ** 9,
-fixed: [dim][dim]bool = .{.{false} ** 9} ** 9,
-current_pos: Position = .{ .row = 0, .col = 0 },
-complete: u8 = 0,
 
 pub fn moveActive(self: *PuzzleGrid, offset: root.Vector2i) void {
     self.current_pos.col = @intCast((self.current_pos.col +% dim +% @as(u8, @intCast(@mod(offset.x, dim)))) % dim);
@@ -44,20 +44,21 @@ pub fn moveActive(self: *PuzzleGrid, offset: root.Vector2i) void {
 pub fn setNumber(self: *PuzzleGrid, num: u8) void {
     if (num == 0 or num > 9) return;
     self.values[self.current_pos.row][self.current_pos.col] = num;
-    self.complete += 1;
+    self.complete[num - 1] += 1;
 }
 
 pub fn removeNumber(self: *PuzzleGrid) void {
     if (self.isCurrentFixed()) return;
-    if (self.getCurrentNumber()) |_| {
+    if (self.getCurrentNumber()) |num| {
         self.values[self.current_pos.row][self.current_pos.col] = 0;
-        self.complete -= 1;
+        self.complete[num - 1] -= 1;
     }
 }
 
 pub fn checkValid(self: *PuzzleGrid, num: u8) ValidityCheckResult {
     if (self.isCurrentFixed()) return .{ .result = false };
-    if (num == 0) return .{ .result = true };
+    if (self.complete[num - 1] == 9) return .{ .result = false };
+    if (num == 0) return .{ .result = false };
 
     var out = ValidityCheckResult{ .result = true };
     var k: u2 = 0;
@@ -112,6 +113,7 @@ pub fn getCurrentNumber(self: *PuzzleGrid) ?u8 {
 
 pub fn checkSolved(self: *PuzzleGrid) bool {
     for (0..9) |j| {
+        if (self.complete[j] != 9) return false;
         var row_flags: [9]bool = .{false} ** 9;
         var col_flags: [9]bool = .{false} ** 9;
         var sqr_flags: [9]bool = .{false} ** 9;

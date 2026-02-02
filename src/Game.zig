@@ -55,6 +55,10 @@ pub fn init(alloc: *const std.mem.Allocator, screenWidth: i32, screenHeight: i32
         },
     };
 
+    for (out.grid.complete, 1..) |comp, i| {
+        out.num_buttons.setDisabled(@intCast(i), comp == 9);
+    }
+
     const menuButton: SimpleMenu.ButtonCommand = .{
         .func = &returnToMenu,
         .text = "Return to menu",
@@ -128,33 +132,13 @@ pub fn update(game_ptr: *anyopaque) void {
             } else {
                 const num_btn = self.num_buttons.checkInput(@intFromFloat(pos.x), @intFromFloat(pos.y));
                 if (num_btn) |num| {
-                    const val = self.grid.checkValid(num);
-                    if (val.result) {
-                        self.grid.setNumber(num);
-                        if (self.grid.complete == 81 and self.grid.checkSolved()) {
-                            self.pauseState = .WIN;
-                        }
-                    } else {
-                        if (val.conflicts) |conf| {
-                            self.renderer.setIncorrect(conf, val.num);
-                        }
-                    }
+                    self.setNumber(num);
                 }
             }
         }
 
         if (Input.pollNumeric()) |num| {
-            const val = self.grid.checkValid(num);
-            if (val.result) {
-                self.grid.setNumber(num);
-                if (self.grid.complete == 81 and self.grid.checkSolved()) {
-                    self.pauseState = .WIN;
-                }
-            } else {
-                if (val.conflicts) |conf| {
-                    self.renderer.setIncorrect(conf, val.num);
-                }
-            }
+            self.setNumber(num);
         }
         if (Input.pollDelete()) {
             self.grid.removeNumber();
@@ -165,6 +149,9 @@ pub fn update(game_ptr: *anyopaque) void {
 pub fn reset(game_ptr: *anyopaque) void {
     const self: *Game = @ptrCast(@alignCast(game_ptr));
     self.grid = PuzzleGrid.init(test_puzzle);
+    for (self.grid.complete, 1..) |comp, i| {
+        self.num_buttons.setDisabled(@intCast(i), comp == 9);
+    }
     self.pauseState = null;
     self.elapsed = 0.0;
 }
@@ -213,6 +200,23 @@ pub fn draw(game_ptr: *anyopaque, screenWidth: i32, screenHeight: i32) void {
         }
     }
     ray.clearBackground(.white);
+}
+
+fn setNumber(self: *Game, num: u8) void {
+    const val = self.grid.checkValid(num);
+    if (val.result) {
+        self.grid.setNumber(num);
+        if (self.grid.checkSolved()) {
+            self.pauseState = .WIN;
+        }
+        if (self.grid.complete[num - 1] == 9) {
+            self.num_buttons.setDisabled(num, true);
+        }
+    } else {
+        if (val.conflicts) |conf| {
+            self.renderer.setIncorrect(conf, val.num);
+        }
+    }
 }
 
 fn returnToGame(game_ptr: *anyopaque) void {

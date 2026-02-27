@@ -3,9 +3,11 @@ const key = ray.KeyboardKey;
 const root = @import("root");
 
 pub fn pollNumeric() ?u8 {
-    const ch: i32 = ray.getCharPressed();
-    if (ch > '0' and ch <= '9') {
-        return @intCast(ch - '0');
+    for (1..10) |i| {
+        const key_code = @intFromEnum(key.one) + @as(c_int, @intCast(i - 1));
+        if (ray.isKeyPressed(@enumFromInt(key_code))) {
+            return @intCast(i);
+        }
     }
     return null;
 }

@@ -21,6 +21,7 @@ values: [dim][dim]u8 = .{.{0} ** 9} ** 9,
 fixed: [dim][dim]bool = .{.{false} ** 9} ** 9,
 current_pos: Position = .{ .row = 0, .col = 0 },
 complete: [9]u8 = .{0} ** 9,
+marks: [9][9]u9 = .{.{0} ** 9} ** 9,
 
 pub fn init(template: *const [81:0]u8) PuzzleGrid {
     var out = PuzzleGrid{};
@@ -133,4 +134,17 @@ pub fn checkSolved(self: *PuzzleGrid) bool {
         }
     }
     return true;
+}
+
+pub fn toggleMark(self: *PuzzleGrid, row: u8, col: u8, num: u8) void {
+    if (self.values[row][col] != 0) return;
+    self.marks[row][col] ^= @as(u9, 1) << @intCast(num - 1);
+}
+
+pub fn removeMark(self: *PuzzleGrid, row: u8, col: u8, num: u8) void {
+    self.marks[row][col] &= ~(@as(u9, 1) << @intCast(num - 1));
+}
+
+pub fn hasMark(self: *PuzzleGrid, row: u8, col: u8, num: u8) bool {
+    return (self.marks[row][col] & (@as(u9, 1) << @intCast(num - 1))) != 0;
 }

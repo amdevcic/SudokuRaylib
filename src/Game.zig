@@ -20,9 +20,16 @@ winMenu: SimpleMenu,
 alloc: *const std.mem.Allocator,
 scene: Scene,
 
-// const test_puzzle: *const [81:0]u8 = "050703060007000800000816000000030000005000100730040086906000204840572093000409000";
+const instructions =
+    \\Arrow keys/Left click: Move
+    \\1-9: Enter number
+    \\0/Backspace: Remove number
+    \\Shift + 1-9: Add or remove note
+;
+
+const test_puzzle: *const [81:0]u8 = "050703060007000800000816000000030000005000100730040086906000204840572093000409000";
 //const test_puzzle: *const [81:0]u8 = "679518243543729618821634957794352186358461729216897534485276391962183475137945862";
-const test_puzzle: *const [81:0]u8 = "009518243543729618821634957794352186358461729216897534485276391962183475137945862";
+// const test_puzzle: *const [81:0]u8 = "009518243543729618821634957794352186358461729216897534485276391962183475137945862";
 
 const UiScreen = enum { PAUSE, WIN };
 
@@ -138,7 +145,11 @@ pub fn update(game_ptr: *anyopaque) void {
         }
 
         if (Input.pollNumeric()) |num| {
-            self.setNumber(num);
+            if (ray.isKeyDown(ray.KeyboardKey.left_shift)) {
+                self.grid.toggleMark(self.grid.current_pos.row, self.grid.current_pos.col, num);
+            } else {
+                self.setNumber(num);
+            }
         }
         if (Input.pollDelete()) {
             self.grid.removeNumber();
@@ -165,6 +176,7 @@ pub fn draw(game_ptr: *anyopaque, screenWidth: i32, screenHeight: i32) void {
     const seconds: i32 = @intFromFloat(@mod(self.elapsed, 60));
 
     ray.drawText(ray.textFormat("Time: %02d:%02d", .{ minutes, seconds }), 10, 10, 20, .light_gray);
+    ray.drawText(instructions, 10, 40, 10, .light_gray);
 
     if (self.pauseState) |st| {
         ray.drawRectangle(0, 0, screenWidth, screenHeight, ray.Color.black.alpha(0.6));

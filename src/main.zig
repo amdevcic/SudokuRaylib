@@ -2,7 +2,7 @@ const ray = @import("raylib");
 const Game = @import("Game.zig");
 const MainMenu = @import("MainMenu.zig");
 const Scene = @import("Scene.zig").Scene;
-const std = @import("std");
+pub const std = @import("std");
 
 /// i32 vector because raylib uses i32 for ints
 pub const Vector2i = struct {

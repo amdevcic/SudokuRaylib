@@ -46,6 +46,18 @@ pub fn setNumber(self: *PuzzleGrid, num: u8) void {
     if (num == 0 or num > 9) return;
     self.values[self.current_pos.row][self.current_pos.col] = num;
     self.complete[num - 1] += 1;
+
+    // Remove conflicting marks
+    for (0..9) |i| {
+        self.removeMark(self.current_pos.row, @intCast(i), num); // row
+        self.removeMark(@intCast(i), self.current_pos.col, num); // column
+
+        const r: u8 = @intCast(@divFloor(self.current_pos.row, 3) * 3 + @divFloor(i, 3));
+        const c: u8 = @intCast(@divFloor(self.current_pos.col, 3) * 3 + i % 3);
+        if (r != self.current_pos.row and c != self.current_pos.col) {
+            self.removeMark(r, c, num);
+        } // square
+    }
 }
 
 pub fn removeNumber(self: *PuzzleGrid) void {

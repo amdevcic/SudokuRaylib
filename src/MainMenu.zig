@@ -46,7 +46,6 @@ pub fn reset(menu_ptr: *anyopaque) void {
 
 pub fn deinit(self: *MainMenu) void {
     self.simpleMenu.deinit();
-    // _ = self;
 }
 
 pub fn update(menu_ptr: *anyopaque) void {

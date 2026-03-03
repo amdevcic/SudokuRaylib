@@ -27,8 +27,9 @@ const instructions =
     \\Shift + 1-9: Add or remove note
 ;
 
-const test_puzzle: *const [81:0]u8 = "050703060007000800000816000000030000005000100730040086906000204840572093000409000";
+// const test_puzzle: *const [81:0]u8 = "050703060007000800000816000000030000005000100730040086906000204840572093000409000";
 //const test_puzzle: *const [81:0]u8 = "679518243543729618821634957794352186358461729216897534485276391962183475137945862";
+const test_puzzle: *const [81:0]u8 = "000000000000729618000634957794352186358461729216897534485276391962183475137945862";
 // const test_puzzle: *const [81:0]u8 = "009518243543729618821634957794352186358461729216897534485276391962183475137945862";
 
 const UiScreen = enum { PAUSE, WIN };
@@ -46,11 +47,12 @@ pub fn init(alloc: *const std.mem.Allocator, screenWidth: i32, screenHeight: i32
             @divFloor(screenHeight - gridSize, 2) - 32,
             gridSize,
         ),
-        .num_buttons = .{
-            .btn_size = 40,
-            .xPosition = @divTrunc(screenWidth - 9 * 40, 2),
-            .yPosition = screenHeight - 64,
-        },
+        .num_buttons = try NumberButtons.init(@divTrunc(screenWidth - 9 * 40, 2), screenHeight - 64, 40),
+        // .num_buttons = .{
+        //     .btn_size = 40,
+        //     .xPosition = @divTrunc(screenWidth - 9 * 40, 2),
+        //     .yPosition = screenHeight - 64,
+        // },
         .pauseMenu = try SimpleMenu.init(alloc, 3),
         .winMenu = try SimpleMenu.init(alloc, 2),
         .alloc = alloc,
@@ -61,10 +63,6 @@ pub fn init(alloc: *const std.mem.Allocator, screenWidth: i32, screenHeight: i32
             .reset_fn = reset,
         },
     };
-
-    for (out.grid.complete, 1..) |comp, i| {
-        out.num_buttons.setDisabled(@intCast(i), comp == 9);
-    }
 
     const menuButton: SimpleMenu.ButtonCommand = .{
         .func = &returnToMenu,
@@ -99,6 +97,9 @@ pub fn init(alloc: *const std.mem.Allocator, screenWidth: i32, screenHeight: i32
 
 pub fn deinit(self: *Game) void {
     self.renderer.deinit();
+    self.num_buttons.deinit();
+    self.pauseMenu.deinit();
+    self.winMenu.deinit();
 }
 
 pub fn update(game_ptr: *anyopaque) void {
@@ -160,9 +161,6 @@ pub fn update(game_ptr: *anyopaque) void {
 pub fn reset(game_ptr: *anyopaque) void {
     const self: *Game = @ptrCast(@alignCast(game_ptr));
     self.grid = PuzzleGrid.init(test_puzzle);
-    for (self.grid.complete, 1..) |comp, i| {
-        self.num_buttons.setDisabled(@intCast(i), comp == 9);
-    }
     self.pauseState = null;
     self.elapsed = 0.0;
 }
@@ -170,7 +168,7 @@ pub fn reset(game_ptr: *anyopaque) void {
 pub fn draw(game_ptr: *anyopaque, screenWidth: i32, screenHeight: i32) void {
     const self: *Game = @ptrCast(@alignCast(game_ptr));
     self.renderer.draw(&self.grid);
-    self.num_buttons.draw();
+    self.num_buttons.draw(self.grid.complete);
 
     const minutes: i32 = @intFromFloat(@divFloor(self.elapsed, 60));
     const seconds: i32 = @intFromFloat(@mod(self.elapsed, 60));
@@ -220,9 +218,6 @@ fn setNumber(self: *Game, num: u8) void {
         self.grid.setNumber(num);
         if (self.grid.checkSolved()) {
             self.pauseState = .WIN;
-        }
-        if (self.grid.complete[num - 1] == 9) {
-            self.num_buttons.setDisabled(num, true);
         }
     } else {
         if (val.conflicts) |conf| {

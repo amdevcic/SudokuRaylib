@@ -152,12 +152,10 @@ pub fn drawMark(self: PuzzleRenderer, x: f32, y: f32, m: usize) void {
 
     const offsetY: i32 = padding + @as(i32, @intCast(@divTrunc(m, 3))) * @divTrunc((self.cellSize - 6 - padding * 2), 2);
     const numY: f32 = y + @as(f32, @floatFromInt(offsetY));
-    ray.drawTexturePro(
+    ray.drawTextureRec(
         self.numberTexture,
         .{ .x = @floatFromInt(5 * m), .y = 0, .width = 5, .height = 6 },
-        .{ .x = numX, .y = numY, .width = 5, .height = 6 },
-        .{ .x = 0, .y = 0 },
-        0,
+        .{ .x = numX, .y = numY },
         .black,
     );
 }
